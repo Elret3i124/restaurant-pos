@@ -1,5 +1,9 @@
 'use strict';
 
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
 /**
  * Backfill production workflows for existing dishes (idempotent).
  *
@@ -113,7 +117,8 @@ async function main() {
       }
     );
 
-    await db.merge(new StringRecordId(dishId), {
+    await db.query('UPDATE $dish SET workflow = $workflow', {
+      dish: new StringRecordId(dishId),
       workflow: new StringRecordId(workflowId),
     });
 

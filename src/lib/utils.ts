@@ -4,6 +4,23 @@ import {RecordId, StringRecordId} from "surrealdb";
 import { getShowCurrencySymbolInUi } from "@/lib/currency-format.ts";
 
 const DECIMAL_PLACES = import.meta.env.VITE_DECIMAL_PLACES;
+const CURRENCY_SYMBOL = (import.meta.env.VITE_CURRENCY_SYMBOL as string | undefined)?.trim();
+
+const formatCurrency = (amount: number, decimalPlaces: number | string | undefined) => {
+  const formatter = new Intl.NumberFormat(import.meta.env.VITE_LOCALE, {
+    style: "currency",
+    currency: import.meta.env.VITE_CURRENCY,
+    maximumFractionDigits: Number(decimalPlaces),
+  });
+
+  if (!CURRENCY_SYMBOL) {
+    return formatter.format(amount);
+  }
+
+  return formatter.formatToParts(amount)
+    .map((part) => part.type === "currency" ? CURRENCY_SYMBOL : part.value)
+    .join("");
+};
 
 type RecordIdInput = {
   id: unknown;
@@ -30,14 +47,9 @@ export const withCurrency = (amount: string | number | undefined, decimalPlaces 
       return "";
     }
     //just return currency symbol
-    return (0)
-      .toLocaleString(import.meta.env.VITE_LOCALE, {
-        style: "currency",
-        currency: import.meta.env.VITE_CURRENCY,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      })
+    return formatCurrency(0, 0)
       .replace(/\d/g, "")
+      .replace(/[.,\s\u00a0]+/g, "")
       .trim();
   }
 
@@ -47,11 +59,7 @@ export const withCurrency = (amount: string | number | undefined, decimalPlaces 
     }).format(Number(amount));
   }
 
-  return new Intl.NumberFormat(import.meta.env.VITE_LOCALE, {
-    style: "currency",
-    currency: import.meta.env.VITE_CURRENCY,
-    maximumFractionDigits: decimalPlaces,
-  }).format(Number(amount));
+  return formatCurrency(Number(amount), decimalPlaces);
 };
 
 export const formatNumber = (amount: string | number, decimalPlaces = DECIMAL_PLACES) => {

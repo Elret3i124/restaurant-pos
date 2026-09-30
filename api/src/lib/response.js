@@ -28,6 +28,11 @@ function handleError(res, err) {
     stack: err && err.stack ? err.stack.split('\n').slice(0, 5) : undefined,
   });
 
+  // Explicit controller/service status always wins over message heuristics.
+  if (statusCode && statusCode >= 400 && statusCode < 600) {
+    return sendError(res, statusCode, message, details);
+  }
+
   if (message.toLowerCase().includes('unsupported')) {
     return sendError(res, 400, message, details);
   }
@@ -39,9 +44,6 @@ function handleError(res, err) {
     message.toLowerCase().includes('must be')
   ) {
     return sendError(res, 422, message, details);
-  }
-  if (statusCode && statusCode >= 400 && statusCode < 600) {
-    return sendError(res, statusCode, message, details);
   }
   return sendError(res, 500, message, details);
 }

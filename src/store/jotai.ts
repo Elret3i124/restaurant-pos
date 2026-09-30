@@ -138,7 +138,10 @@ export const appPage = atomWithStorage<AppPageInterface>(
 export const whatsNewOpenRequest = atom(false);
 
 /** Terminal-scoped printer routing (this browser). Delivery stays user/global DB. */
+export type PrintOutputMode = 'printer' | 'pdf'
+
 export interface SystemPrinterSettings {
+  outputMode: PrintOutputMode
   useSystemPrinters: boolean
   temp_print_printers: string[]
   final_print_printers: string[]
@@ -147,6 +150,9 @@ export interface SystemPrinterSettings {
 }
 
 export const defaultSystemPrinterSettings: SystemPrinterSettings = {
+  outputMode: String(import.meta.env.VITE_PRINT_OUTPUT_MODE ?? '').toLowerCase() === 'pdf'
+    ? 'pdf'
+    : 'printer',
   useSystemPrinters: false,
   temp_print_printers: [],
   final_print_printers: [],

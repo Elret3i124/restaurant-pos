@@ -163,9 +163,34 @@ bun install
 docker compose up -d
 ```
 
+For a useful local demo after the schema and `migrations/demo-data.surql` are
+loaded, run the idempotent readiness step:
+
+```bash
+npm run demo:prepare
+```
+
+It upgrades legacy role permissions, grants the seeded **Master** role the
+current full permission catalog, creates starter operational data, and
+backfills kitchen workflows. The seeded Master PIN is `5555`.
+
 Copied `.env` files include **local-dev** Surreal and JWT values. Change `SURREAL_USER`, `SURREAL_PASS`, and `GATEWAY_JWT_SECRET` before any non-localhost deploy. `root`/`root` is rejected.
 
 **Auth gateway (default):** SPA uses port **3142**, not Surreal **8000**. Set `VITE_GATEWAY_URL` / `VITE_DB_WEBDOCKET` to the gateway; do **not** set `VITE_DB_USER` / `VITE_DB_PASS` in the browser bundle. Details and rollback: [docs/security/GATEWAY.md](docs/security/GATEWAY.md).
+
+### QR table ordering
+
+The public customer menu uses the same app at `/menu?table=<number>&qr=<secret>`.
+For local phone testing, replace `localhost` with the computer's LAN address,
+for example `http://192.168.1.114:5173/menu?table=1&qr=...`. The Vite dev
+server proxies `/api/pos` to the local API on port `3140`, and the production
+nginx configuration exposes the same same-origin route.
+
+The QR API validates the table secret, calculates prices from the server-side
+catalog, creates the POS order and kitchen ticket, and returns an opaque public
+token for `/order/<token>`. A separately hosted customer frontend must proxy
+its `/api/pos` path to a reachable deployment of this API; `localhost` in a
+customer's browser refers to the customer's own device, not the restaurant PC.
 
 ---
 

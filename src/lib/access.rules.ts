@@ -440,6 +440,7 @@ export const LEGACY_MODULE_MAP: Record<string, string | string[]> = {
   Activity: "reports.activity",
   "Product Mix Weekly": "reports.product_mix_weekly",
   "Product Mix Summary": "reports.product_mix_summary",
+  "Products Summary": "reports.product_mix_summary",
   "Products Hourly": "reports.products_hourly",
   "Current Inventory": ["inventory.current_inventory", "reports.current_inventory"],
   "Detailed Inventory": "reports.detailed_inventory",
@@ -487,6 +488,7 @@ export const LEGACY_MODULE_MAP: Record<string, string | string[]> = {
 
   // Delivery
   "Delivery orders": "delivery.orders",
+  "Order Management": "delivery.orders",
   "Delivery areas": "delivery.areas",
   "Delivery settings": "delivery.settings",
 
@@ -495,6 +497,7 @@ export const LEGACY_MODULE_MAP: Record<string, string | string[]> = {
   Menus: ["admin.menus", "settings.menus"],
   Categories: "admin.categories",
   "Modifier Groups": "admin.modifier_groups",
+  "Modifier groups": "admin.modifier_groups",
   Tables: "admin.tables",
   Floors: "admin.floors",
   Discounts: "admin.discounts",
@@ -504,7 +507,9 @@ export const LEGACY_MODULE_MAP: Record<string, string | string[]> = {
   Printers: ["admin.printers", "settings.printers"],
   "Print settings": "admin.print_settings",
   "Order Types": "admin.order_types",
+  "Order types": "admin.order_types",
   "Payment Types": "admin.payment_types",
+  "Payment types": "admin.payment_types",
   Extras: "admin.extras",
   Taxes: "admin.taxes",
   Users: "admin.users",

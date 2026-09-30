@@ -1,3 +1,4 @@
+import React from "react";
 import {useAtomValue} from "jotai";
 import {Navigate, Outlet, useLocation} from "react-router";
 import {appPage} from "@/store/jotai.ts";
@@ -6,7 +7,7 @@ import {WhatsNewDialog} from "@/components/whats-new/whats-new.dialog.tsx";
 import {getSessionToken, isGatewayAuthEnabled} from "@/lib/session.ts";
 import {useHydrateCurrencySymbol} from "@/hooks/useCurrencySymbol.ts";
 
-export const ProtectedRoute = () => {
+export const ProtectedRoute = ({children}: {children?: React.ReactNode}) => {
   const {user} = useAtomValue(appPage);
   const location = useLocation();
   useHydrateCurrencySymbol();
@@ -21,7 +22,7 @@ export const ProtectedRoute = () => {
 
   return (
     <>
-      <Outlet/>
+      {children ?? <Outlet/>}
       <WhatsNewDialog/>
     </>
   );

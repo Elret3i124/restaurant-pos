@@ -1,12 +1,12 @@
 import {Route, Routes} from "react-router";
 import {Login} from "@/screens/login.tsx";
 import {NotFound} from "@/screens/not-found.tsx";
-import {Menu} from "@/screens/menu";
 import {Orders} from "@/screens/orders.tsx";
 import {Summary} from "@/screens/summary.tsx";
 import {KitchenScreen} from "@/screens/kitchen.tsx";
 import {Clock} from "@/screens/clock.tsx";
 import {ProtectedRoute} from "@/routes/protected-route.tsx";
+import {MenuEntry, QrOrderStatus} from "@/screens/qr-menu.tsx";
 import {SuspenseOutlet} from "@/routes/suspense-outlet.tsx";
 import {
   ADMIN,
@@ -145,8 +145,9 @@ import {
 export const AppRoutes = () => (
   <Routes>
     <Route path={LOGIN} element={<Login/>}/>
+    <Route path={MENU} element={<MenuEntry/>}/>
+    <Route path="/order/:token" element={<QrOrderStatus/>}/>
     <Route element={<ProtectedRoute/>}>
-      <Route path={MENU} element={<Menu/>}/>
       <Route path={ORDERS} element={<Orders/>}/>
       <Route path={SUMMARY} element={<Summary/>}/>
       <Route path={KITCHEN} element={<KitchenScreen/>}/>

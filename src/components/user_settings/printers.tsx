@@ -10,7 +10,12 @@ import { Printer } from "@/api/model/printer.ts";
 import { ReactSelect } from "@/components/common/input/custom.react.select.tsx";
 import { Switch } from "@/components/common/input/switch.tsx";
 import { toast } from "sonner";
-import { appPage, systemPrinterSettings, type SystemPrinterSettings } from "@/store/jotai.ts";
+import {
+  appPage,
+  defaultSystemPrinterSettings,
+  systemPrinterSettings,
+  type SystemPrinterSettings,
+} from "@/store/jotai.ts";
 import {toRecordId} from "@/lib/utils.ts";
 import {useSecurity} from "@/hooks/useSecurity.ts";
 import {useTranslation} from 'react-i18next';
@@ -236,6 +241,24 @@ export const Printersettings = () => {
       <p className="text-sm text-neutral-500 mb-4">
         {t('settings:printers.description')}
       </p>
+
+      <div className="mb-6 pb-4 border-b border-neutral-200 rounded-lg bg-primary-50 p-4">
+        <Switch
+          checked={(systemSettings.outputMode ?? defaultSystemPrinterSettings.outputMode) === 'pdf'}
+          onChange={(e) => {
+            setSystemSettings((prev) => ({
+              ...defaultSystemPrinterSettings,
+              ...prev,
+              outputMode: e.target.checked ? 'pdf' : 'printer',
+            }));
+          }}
+        >
+          {t('settings:printers.saveAsPdf')}
+        </Switch>
+        <p className="text-sm text-neutral-600 mt-2">
+          {t('settings:printers.saveAsPdfDescription')}
+        </p>
+      </div>
 
       <div className="mb-6 pb-4 border-b border-neutral-200">
         <Switch

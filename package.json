@@ -17,6 +17,9 @@
     "migrate:discounts": "node scripts/migrate-discounts.mjs",
     "seed:discounts": "node scripts/seed-discounts.mjs",
     "backfill:order-discounts": "node scripts/backfill-order-discounts.mjs",
+    "migrate:access": "node --env-file=.env migrations/scripts/backfill-access-modules.cjs",
+    "migrate:workflows": "node --env-file=.env migrations/scripts/backfill-workflows.js",
+    "demo:prepare": "npm run migrate:access && node --env-file=.env migrations/scripts/prepare-demo.cjs && npm run migrate:workflows",
     "print-server": "cd printing && npm start",
     "payment-server": "cd payments && npm start",
     "tracking-server": "cd tracking-api && npm start",
@@ -115,6 +118,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.0.2",
     "vite": "8.0.8",
-    "vitest": "^3.2.6"
+    "vitest": "^3.2.6",
+    "ws": "^8.21.3"
   }
 }

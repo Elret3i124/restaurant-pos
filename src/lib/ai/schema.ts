@@ -14,8 +14,11 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   PKR: "Rs",
   EUR: "€",
   GBP: "£",
+  TND: "DT",
 };
-const CURRENCY_SYMBOL = CURRENCY_SYMBOLS[APP_CURRENCY] ?? APP_CURRENCY;
+const CURRENCY_SYMBOL = (import.meta.env.VITE_CURRENCY_SYMBOL as string)
+  || CURRENCY_SYMBOLS[APP_CURRENCY]
+  || APP_CURRENCY;
 
 const FORMAT_INSTRUCTIONS: Record<AiReportFormat, string> = {
   table: `Output format: TABLE

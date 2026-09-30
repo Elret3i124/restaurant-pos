@@ -39,6 +39,11 @@
   "printers": {
     "title": "Imprimantes par défaut",
     "description": "Assignez des imprimantes par utilisateur ou pour ce terminal. Quand les imprimantes système sont activées, le provisoire, le final, le remboursement et le résumé utilisent les affectations de cet appareil. La livraison utilise toujours les paramètres utilisateur ou globaux.",
+    "saveAsPdf": "Enregistrer les impressions en PDF",
+    "saveAsPdfDescription": "Mode test : les reçus, tickets cuisine, livraisons, remboursements et résumés sont téléchargés en PDF au lieu d'utiliser une imprimante physique.",
+    "pdfSaved": "{{filename}} enregistré",
+    "pdfFailed": "Échec de l'enregistrement de l'impression en PDF",
+    "pdfCashDrawerUnavailable": "Le tiroir-caisse ne peut pas être ouvert lorsque le mode test PDF est activé.",
     "loading": "Chargement des paramètres d'impression…",
     "useSystemPrinters": "Utiliser les imprimantes système sur cet appareil",
     "useSystemPrintersDescription": "Si activé, ce navigateur/terminal utilise les imprimantes système ci-dessous au lieu de celles de l'utilisateur connecté (sauf livraison).",

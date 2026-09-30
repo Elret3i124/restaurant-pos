@@ -31,6 +31,7 @@ function sanitizeBody(body) {
   const secretKeys = [
     'password',
     'client_secret',
+    'secret',
     'secret_key',
     'api_key',
     'apikey',

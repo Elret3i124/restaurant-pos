@@ -19,6 +19,7 @@ import {
   type PrintOptions,
 } from "@/api/model/print_options.ts";
 import { getAppTimezone } from "@/lib/datetime.ts";
+import { exportElementAsPdf } from "@/lib/export.document.ts";
 
 
 export const PRINT_EVENT = 'posr:print';
@@ -61,11 +62,95 @@ const PRINT_CONFIG_KEYS: Record<string, string> = {
 };
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$', PKR: 'Rs', EUR: '€', GBP: '£',
+  USD: '$', PKR: 'Rs', EUR: '€', GBP: '£', TND: 'DT',
 };
 
 // Set VITE_PRINT_SERVER_URL in .env (e.g. http://localhost:3132) to override.
 const DEFAULT_PRINT_URL = 'http://localhost:3132';
+
+function safeFilenamePart(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function pdfFilename(template: string, payload: Record<string, unknown>, title?: string): string {
+  const order = payload.order && typeof payload.order === 'object'
+    ? payload.order as Record<string, unknown>
+    : undefined;
+  const orderLabel = order?.invoice_number ?? order?.auto_id ?? order?.id;
+  const base = safeFilenamePart(title || template || 'receipt') || 'receipt';
+  const suffix = safeFilenamePart(orderLabel);
+  return `${base}${suffix ? `-${suffix}` : ''}.pdf`;
+}
+
+async function waitForPreviewAssets(doc: Document): Promise<void> {
+  if ('fonts' in doc) {
+    await (doc as Document & {fonts: FontFaceSet}).fonts.ready.catch(() => undefined);
+  }
+  await Promise.all(Array.from(doc.images).map((img) => {
+    if (img.complete) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      img.addEventListener('load', () => resolve(), {once: true});
+      img.addEventListener('error', () => resolve(), {once: true});
+    });
+  }));
+}
+
+async function exportPreviewAsPdf(
+  baseUrl: string,
+  body: Record<string, unknown>,
+  filename: string,
+): Promise<void> {
+  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/print/preview`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error((await response.text()) || 'Could not create print preview');
+  }
+
+  const html = await response.text();
+  const frame = document.createElement('iframe');
+  frame.title = 'PDF print preview';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.tabIndex = -1;
+  Object.assign(frame.style, {
+    position: 'fixed',
+    left: '-10000px',
+    top: '0',
+    width: '640px',
+    height: '2000px',
+    border: '0',
+    pointerEvents: 'none',
+  });
+
+  try {
+    const loaded = new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error('PDF preview timed out')), 10000);
+      frame.addEventListener('load', () => {
+        window.clearTimeout(timeout);
+        resolve();
+      }, {once: true});
+    });
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+    await loaded;
+
+    const doc = frame.contentDocument;
+    if (!doc) throw new Error('PDF preview document is unavailable');
+    await waitForPreviewAssets(doc);
+    frame.style.height = `${Math.max(800, Math.min(20000, doc.documentElement.scrollHeight + 32))}px`;
+
+    const printable = doc.querySelector<HTMLElement>('.receipt') ?? doc.body;
+    await exportElementAsPdf(printable, filename);
+  } finally {
+    frame.remove();
+  }
+}
 
 function toIdString(v: unknown): string {
   if (v == null) return '';
@@ -138,7 +223,10 @@ export async function getPrintConfig(db: PrintDB, template: string): Promise<Rec
   const values = row?.values ?? {};
   const logo = logoToBase64(values.logo);
   const currency = (import.meta.env.VITE_CURRENCY as string) || 'USD';
-  const currencySymbol = CURRENCY_SYMBOLS[currency] || (import.meta.env.VITE_CURRENCY as string) || '$';
+  const currencySymbol = (import.meta.env.VITE_CURRENCY_SYMBOL as string)
+    || CURRENCY_SYMBOLS[currency]
+    || (import.meta.env.VITE_CURRENCY as string)
+    || '$';
   return {
     ...values,
     logo: logo ?? values.logo,
@@ -294,6 +382,8 @@ export async function dispatchPrint<Payload = any>(
   const baseUrl = (import.meta.env.VITE_PRINT_SERVER_URL as string) || DEFAULT_PRINT_URL;
   const url = `${baseUrl.replace(/\/$/, '')}/print`;
   const uid = options?.userId != null ? toIdString(options.userId) : null;
+  const outputMode = getDefaultStore().get(systemPrinterSettings).outputMode
+    ?? (String(import.meta.env.VITE_PRINT_OUTPUT_MODE ?? '').toLowerCase() === 'pdf' ? 'pdf' : 'printer');
 
   const explicitPrinters = options?.printers?.length > 0 ? options.printers : null;
 
@@ -309,11 +399,12 @@ export async function dispatchPrint<Payload = any>(
 
   const printers = explicitPrinters || (settingsPrinters.length > 0 ? settingsPrinters : null);
 
-  const driverPrinters = printers?.map(printerToDriverConfig);
-  if (!driverPrinters || driverPrinters.length === 0) {
-    console.error('No printers configured for this print type.');
-    return false;
-  }
+  // PDF output is rendered from the print preview and does not require a
+  // configured printer. Some legacy printer settings can also contain empty
+  // entries, so ignore those before translating physical printer details.
+  const driverPrinters = outputMode === 'pdf'
+    ? []
+    : printers?.filter((printer): printer is Printer => Boolean(printer)).map(printerToDriverConfig);
 
   let printPayload = { ...(payload as Record<string, unknown>) };
   if (printPayload.order && (template === 'kitchen' || template === 'deletion')) {
@@ -345,8 +436,30 @@ export async function dispatchPrint<Payload = any>(
   const body = {
     data: { printType: template, copies, ...printPayload },
     config: printConfig,
-    printers: driverPrinters,
+    printers: driverPrinters ?? [],
   };
+
+  if (outputMode === 'pdf') {
+    if (template === 'pulse') {
+      toast.error(i18n.t('settings:printers.pdfCashDrawerUnavailable'));
+      return false;
+    }
+    const filename = pdfFilename(template, printPayload, options?.title);
+    try {
+      await exportPreviewAsPdf(baseUrl, body, filename);
+      toast.success(i18n.t('settings:printers.pdfSaved', {filename}));
+      return true;
+    } catch (error) {
+      console.error('PDF export failed', error);
+      toast.error(i18n.t('settings:printers.pdfFailed'));
+      return false;
+    }
+  }
+
+  if (!driverPrinters || driverPrinters.length === 0) {
+    console.error('No printers configured for this print type.');
+    return false;
+  }
 
   try {
     const res = await fetch(url, {

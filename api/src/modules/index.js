@@ -26,6 +26,11 @@ const modules = [
     router: require('./integrations/integrations.routes'),
     webhookRouter: require('./integrations/integrations.webhook.routes').webhookRouter,
   },
+  {
+    name: 'qr-order',
+    basePath: '/api/pos',
+    webhookRouter: require('./qr-order/qr-order.routes').webhookRouter,
+  },
 ];
 
 module.exports = { modules };

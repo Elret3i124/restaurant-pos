@@ -39,6 +39,11 @@
   "printers": {
     "title": "Default printers",
     "description": "Assign printers per user or for this terminal. When system printers are enabled, temp, final, refund, and summary use this device’s assignments. Delivery always uses user or global settings.",
+    "saveAsPdf": "Save print jobs as PDF",
+    "saveAsPdfDescription": "Testing mode: receipt, kitchen, delivery, refund, and summary print actions download a PDF instead of using a physical printer.",
+    "pdfSaved": "Saved {{filename}}",
+    "pdfFailed": "Failed to save the print job as PDF",
+    "pdfCashDrawerUnavailable": "The cash drawer cannot be opened while PDF testing mode is enabled.",
     "loading": "Loading printer settings…",
     "useSystemPrinters": "Use system printers on this device",
     "useSystemPrintersDescription": "When enabled, this browser/terminal uses the system printer assignments below instead of the logged-in user’s printers (except delivery).",
