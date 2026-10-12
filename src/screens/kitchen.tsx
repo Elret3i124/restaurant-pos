@@ -1,7 +1,5 @@
 import {Layout} from "@/screens/partials/layout.tsx";
 import {Button} from "@/components/common/input/button.tsx";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faClose} from "@fortawesome/free-solid-svg-icons";
 import ScrollContainer from "react-indiana-drag-scroll";
 import useApi, {SettingsData} from "@/api/db/use.api.ts";
 import {
@@ -546,21 +544,6 @@ export const KitchenScreen = () => {
     }
   }
 
-  const allDishes = useMemo(() => {
-    const itemsMap = new Map();
-    orders.forEach(group => {
-      group.batches.forEach(batch => {
-        batch.items.forEach(orderItem => {
-          const itemName = orderItem.order_item.item.name;
-          itemsMap.set(itemName, (itemsMap.get(itemName) ?? 0) + orderItem.order_item.quantity);
-        })
-      });
-    });
-
-    return Array.from(itemsMap);
-  }, [orders]);
-
-  const [dishesModal, setDishesModal] = useState(false);
   const speechUnlockedRef = useRef(false);
 
   const unlockKitchenSpeech = useCallback(() => {
@@ -607,8 +590,6 @@ export const KitchenScreen = () => {
             </DeleteConfirm>
             <Button variant="secondary" size="lg"
                     onClick={openCompletedOrdersModal}>{t("kitchen:actions.completedOrders")}</Button>
-            <Button variant="secondary" size="lg"
-                    onClick={() => setDishesModal(!dishesModal)}>{t("kitchen:actions.viewAllDishes")}</Button>
           </div>
           <div className="input-group flex-1 justify-end flex gap-3 items-center h-full">
             <span
@@ -618,8 +599,7 @@ export const KitchenScreen = () => {
         <div className="grid grid-cols-5 gap-5">
           <ScrollContainer
             className={cn(
-              'h-[calc(100vh_-_110px)] select-none overflow-y-hidden',
-              dishesModal ? 'col-span-4' : 'col-span-5'
+              'h-[calc(100vh_-_110px)] select-none overflow-y-hidden col-span-5'
             )}
           >
             <div
@@ -642,25 +622,6 @@ export const KitchenScreen = () => {
             </div>
           </ScrollContainer>
 
-          {dishesModal && (
-            <div className="flex flex-col col-span-1 bg-white rounded-xl">
-              <button
-                onClick={() => setDishesModal(false)}
-                className="bg-black text-white self-end mb-5 inline-flex h-12 w-12 justify-center items-center">
-                <FontAwesomeIcon icon={faClose}/>
-              </button>
-              <ScrollContainer className={cn(
-                'h-[calc(100vh_-_200px)] select-none',
-              )}>
-                {allDishes.map((item, index) => (
-                  <div className="flex justify-between text-2xl odd:bg-gray-200 p-3" key={index}>
-                    <strong>{item[0]}</strong>
-                    <span className="bg-black text-warning-500 w-12 text-center">{item[1]}</span>
-                  </div>
-                ))}
-              </ScrollContainer>
-            </div>
-          )}
         </div>
       </div>
       <Modal
