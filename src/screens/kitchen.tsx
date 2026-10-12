@@ -215,7 +215,6 @@ export const KitchenScreen = () => {
     [orders, maxItemsPerCard]
   );
 
-  const [avgTime, setAvgTime] = useState('-');
   const [showCompletedOrdersModal, setShowCompletedOrdersModal] = useState(false);
   const [completedOrders, setCompletedOrders] = useState<KitchenOrderTicket[]>([]);
   const [loadingCompletedOrders, setLoadingCompletedOrders] = useState(false);
@@ -336,7 +335,6 @@ export const KitchenScreen = () => {
     setOrders(groupKitchenOrderItems(kitchenOrderItemsRecord ?? []));
     setOrdersHydrated(true);
 
-    await calculateAverageTime(kitchenId);
   }, [groupKitchenOrderItems, page?.user?.id]);
 
   const loadCompletedOrders = useCallback(async (kitchenId: string) => {
@@ -478,56 +476,6 @@ export const KitchenScreen = () => {
     }
   }, [kitchen]);
 
-  const calculateAverageTime = useCallback(async (kitchenId: string) => {
-    const startDate = getAppStartOfDaySurreal();
-    const maxPrepMinutes = 240;
-
-    const [rows]: any = await db.query(
-      `SELECT completed_at, activated_at, created_at
-       FROM ${Tables.order_items_kitchen}
-       WHERE kitchen = $kitchen
-         AND completed_at != None
-         AND created_at >= $startDate`,
-      {
-        kitchen: toRecordId(kitchenId),
-        startDate,
-      }
-    );
-
-    const durations: number[] = [];
-
-    for (const row of rows ?? []) {
-      const start = row.activated_at ?? row.created_at;
-      const end = row.completed_at;
-      if (!start || !end) {
-        continue;
-      }
-
-      const startAt = toLuxonDateTime(start);
-      const endAt = toLuxonDateTime(end);
-      if (!startAt.isValid || !endAt.isValid) {
-        continue;
-      }
-
-      const minutes = endAt.diff(startAt, 'minutes').minutes;
-      if (!Number.isFinite(minutes) || minutes < 0 || minutes > maxPrepMinutes) {
-        continue;
-      }
-
-      durations.push(minutes);
-    }
-
-    if (durations.length === 0) {
-      setAvgTime('-');
-      return;
-    }
-
-    const averageMinutes = Math.round(
-      durations.reduce((sum, value) => sum + value, 0) / durations.length
-    );
-    setAvgTime(t('kitchen:labels.avgTimeMins', { count: averageMinutes }));
-  }, [t]);
-
   const completeAllOrders = async () => {
     const userId = page?.user?.id;
     const ids = orders.flatMap((group) =>
@@ -590,10 +538,6 @@ export const KitchenScreen = () => {
             </DeleteConfirm>
             <Button variant="secondary" size="lg"
                     onClick={openCompletedOrdersModal}>{t("kitchen:actions.completedOrders")}</Button>
-          </div>
-          <div className="input-group flex-1 justify-end flex gap-3 items-center h-full">
-            <span
-              className="rounded-xl bg-neutral-900 text-warning-500 text-2xl h-full flex items-center px-3">{t("kitchen:labels.avgTime", {time: avgTime})}</span>
           </div>
         </div>
         <div className="grid grid-cols-5 gap-5">
