@@ -3,7 +3,7 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Button} from "@/components/common/input/button.tsx";
 import {DENOMINATION_COINS, DENOMINATION_NOTES, formatNumber, withCurrency} from "@/lib/utils.ts";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faPlus, faPrint, faSave, faTrash} from "@fortawesome/free-solid-svg-icons";
+import {faMinus, faPlus, faPrint, faSave, faTrash} from "@fortawesome/free-solid-svg-icons";
 import {useDB} from "@/api/db/db.ts";
 import {Tables} from "@/api/db/tables.ts";
 import {
@@ -54,6 +54,53 @@ const createEmptyDenomination = (): TerminalDenomination => ({
     return acc;
   }, {} as Record<string, number>),
 });
+
+type DenominationCounterProps = {
+  label: string;
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+};
+
+const DenominationCounter = ({label, value, disabled, onChange}: DenominationCounterProps) => (
+  <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-2">
+    <div className="mb-2 text-center text-lg font-semibold">{label}</div>
+    <div className="grid grid-cols-[56px_minmax(72px,1fr)_56px] items-end gap-2">
+      <Button
+        aria-label={`Remove one ${label}`}
+        variant="secondary"
+        size="lg"
+        iconButton
+        icon={faMinus}
+        className="h-14 min-h-14 w-14 touch-manipulation"
+        disabled={disabled || value <= 0}
+        onClick={() => onChange(Math.max(0, value - 1))}
+      />
+      <Input
+        type="number"
+        inputSize="lg"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        min={0}
+        step={1}
+        inputMode="numeric"
+        enableKeyboard
+        disabled={disabled}
+        className="h-14 min-w-0 text-center text-2xl font-bold"
+      />
+      <Button
+        aria-label={`Add one ${label}`}
+        variant="primary"
+        size="lg"
+        iconButton
+        icon={faPlus}
+        className="h-14 min-h-14 w-14 touch-manipulation"
+        disabled={disabled}
+        onClick={() => onChange(value + 1)}
+      />
+    </div>
+  </div>
+);
 
 const normalizeDenominationValue = (value: unknown) => {
   const parsed = Number(value);
@@ -608,54 +655,46 @@ export const Closing = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <div className="font-semibold mb-2">{t("closing:terminal.notes")}</div>
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                        {DENOMINATION_NOTES.map(denomination => (
-                          <div key={denomination}>
-                            <Input
+                      <div className="grid grid-cols-1 gap-2">
+                        {DENOMINATION_NOTES.map(denomination => {
+                          const value = terminalDenominations[terminal.terminal_id]?.notes?.[String(denomination)] ?? 0;
+                          return (
+                            <DenominationCounter
                               key={`${terminal.terminal_id}_note_${denomination}`}
-                              type="number"
-                              value={terminalDenominations[terminal.terminal_id]?.notes?.[String(denomination)] ?? 0}
-                              onChange={(e) => updateTerminalDenomination(
+                              label={t("closing:terminal.denomination", {value: denomination})}
+                              value={value}
+                              disabled={isReadOnly}
+                              onChange={(nextValue) => updateTerminalDenomination(
                                 terminal.terminal_id,
                                 "notes",
                                 denomination,
-                                Number(e.target.value)
+                                nextValue
                               )}
-                              label={t("closing:terminal.denomination", {value: denomination})}
-                              placeholder={t("closing:terminal.denomination", {value: denomination})}
-                              min={0}
-                              step={1}
-                              enableKeyboard
-                              disabled={isReadOnly}
                             />
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                     <div>
                       <div className="font-semibold mb-2">{t("closing:terminal.coins")}</div>
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                        {DENOMINATION_COINS.map(denomination => (
-                          <div key={denomination}>
-                            <Input
+                      <div className="grid grid-cols-1 gap-2">
+                        {DENOMINATION_COINS.map(denomination => {
+                          const value = terminalDenominations[terminal.terminal_id]?.coins?.[String(denomination)] ?? 0;
+                          return (
+                            <DenominationCounter
                               key={`${terminal.terminal_id}_coin_${denomination}`}
-                              type="number"
-                              value={terminalDenominations[terminal.terminal_id]?.coins?.[String(denomination)] ?? 0}
-                              onChange={(e) => updateTerminalDenomination(
+                              label={t("closing:terminal.denomination", {value: denomination})}
+                              value={value}
+                              disabled={isReadOnly}
+                              onChange={(nextValue) => updateTerminalDenomination(
                                 terminal.terminal_id,
                                 "coins",
                                 denomination,
-                                Number(e.target.value)
+                                nextValue
                               )}
-                              placeholder={t("closing:terminal.denomination", {value: denomination})}
-                              label={t("closing:terminal.denomination", {value: denomination})}
-                              min={0}
-                              step={1}
-                              enableKeyboard
-                              disabled={isReadOnly}
                             />
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
