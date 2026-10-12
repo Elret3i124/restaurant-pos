@@ -125,7 +125,12 @@ async function lookupContext(db, tableNumber) {
     );
   const orderTypeResult = await db.query(`SELECT * FROM order_type WHERE string::lowercase(name) = 'dine in' AND deleted_at = none LIMIT 1`);
   const userResult = await db.query(`SELECT * FROM user WHERE login = '5555' AND deleted_at = none LIMIT 1`);
-  const kitchenResult = await db.query(`SELECT * FROM kitchen WHERE deleted_at = none ORDER BY name LIMIT 1`);
+  // Match the POS kitchen board: the lowest-priority active station is the
+  // default preparation destination. Alphabetical ordering previously sent
+  // every QR order to "Cutting" instead of the priority-1 "Kitchen" station.
+  const kitchenResult = await db.query(
+    `SELECT * FROM kitchen WHERE deleted_at = none ORDER BY priority ASC, name ASC LIMIT 1`,
+  );
 
   const table = asRows(tableResult).find((candidate) => candidate?.floor?.name === 'Ground')
     || asRows(tableResult)[0];
