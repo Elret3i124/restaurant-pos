@@ -3,12 +3,10 @@ import { appPage } from "@/store/jotai.ts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBarChart,
-  faBars,
   faClipboardList,
   faGear, faLineChart,
   faDisplay,
   faList, faLock,
-  faMotorcycle,
   faStore,
   faUtensils, faUsers, faWarehouse, faWrench,
   faClock,
@@ -26,12 +24,10 @@ import {
   ADMIN,
   CLOSING,
   CLOCK,
-  DELIVERY,
   INVENTORY,
   HR,
   KITCHEN,
   ORDER_DISPLAY,
-  MENU,
   ORDERS,
   REPORTS,
   SETTINGS,
@@ -46,12 +42,10 @@ import { useTranslation } from "react-i18next";
 import { lockSession, logoutSession } from "@/lib/session.actions.ts";
 
 const SIDEBAR_NAV_TEST_IDS: Partial<Record<string, string>> = {
-  [MENU]: 'nav-menu',
   [ORDERS]: 'nav-orders',
   [SUMMARY]: 'nav-summary',
   [KITCHEN]: 'nav-kitchen',
   [ORDER_DISPLAY]: 'nav-order-display',
-  [DELIVERY]: 'nav-delivery',
   [CLOSING]: 'nav-closing',
   [INVENTORY]: 'nav-inventory',
   [ADMIN]: 'nav-admin',
@@ -87,12 +81,10 @@ export const Sidebar = () => {
   }
 
   const allSidebarItems = useMemo(() => [
-    { title: t('sidebar.menu'), icon: <FontAwesomeIcon icon={faBars} size="lg"/>, link: MENU, role: 'menu' },
     { title: t('sidebar.orders'), icon: <FontAwesomeIcon icon={faList} size="lg"/>, link: ORDERS, role: 'orders' },
     { title: t('sidebar.summary'), icon: <FontAwesomeIcon icon={faClipboardList} size="lg"/>, link: SUMMARY, role: 'summary' },
     { title: t('sidebar.kitchen'), icon: <FontAwesomeIcon icon={faUtensils} size="lg"/>, link: KITCHEN, role: 'kitchen' },
     { title: t('sidebar.orderDisplay'), icon: <FontAwesomeIcon icon={faDisplay} size="lg"/>, link: ORDER_DISPLAY, role: 'order_display' },
-    { title: t('sidebar.delivery'), icon: <FontAwesomeIcon icon={faMotorcycle} size="lg"/>, link: DELIVERY, role: 'delivery' },
     { title: t('sidebar.closing'), icon: <FontAwesomeIcon icon={faStore} size="lg"/>, link: CLOSING, role: 'closing' },
     { title: t('sidebar.inventory'), icon: <FontAwesomeIcon icon={faWarehouse} size="lg"/>, link: INVENTORY, role: 'inventory' },
     { title: t('sidebar.manage'), icon: <FontAwesomeIcon icon={faGear} size="lg"/>, link: ADMIN, role: 'admin' },
