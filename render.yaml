@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: pronto-pos-backend
+    runtime: node
+    plan: free
+    buildCommand: npm ci --prefix gateway && npm ci --prefix api
+    startCommand: node gateway/server.js
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: COMBINED_API
+        value: "true"
+      - key: GATEWAY_HOST
+        value: 0.0.0.0
+      - key: GATEWAY_JWT_TTL
+        value: 12h
+      - key: GATEWAY_JWT_SECRET
+        generateValue: true
+      - key: GATEWAY_AUTH_REQUIRED
+        value: "true"
+      - key: GATEWAY_ALLOWED_ORIGINS
+        value: https://pronto-pos-dashboard.vercel.app
+      - key: API_ALLOWED_ORIGINS
+        value: https://pronto-pos-dashboard.vercel.app,https://frontend-taupe-beta-47.vercel.app
+      - key: API_LOG_LEVEL
+        value: info
+      - key: AI_ENABLED
+        value: "false"
+      - key: SURREAL_URL
+        sync: false
+      - key: SURREAL_NS
+        value: posr
+      - key: SURREAL_DB
+        value: posr
+      - key: SURREAL_USER
+        sync: false
+      - key: SURREAL_PASS
+        sync: false

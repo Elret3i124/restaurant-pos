@@ -17,7 +17,9 @@ const { initSurrealClient } = require('./src/surreal-client');
 const { verifySession, extractBearer } = require('./src/jwt');
 
 const app = express();
-const PORT = Number(process.env.GATEWAY_PORT || 3142);
+// Cloud platforms such as Render inject PORT. Keep GATEWAY_PORT as the
+// explicit local/Compose override while still supporting their convention.
+const PORT = Number(process.env.GATEWAY_PORT || process.env.PORT || 3142);
 const HOST = process.env.GATEWAY_HOST || '0.0.0.0';
 
 function parseOrigins(raw) {
@@ -86,6 +88,14 @@ app.post('/auth/verify', async (req, res) => {
     return res.status(err.status || 401).json({ ok: false, error: err.message });
   }
 });
+
+// A permanent cloud deployment can expose the gateway and API through one
+// service/URL. Requiring api/server returns its Express app without opening a
+// second listener; local development remains unchanged unless this flag is set.
+if (String(process.env.COMBINED_API || '').toLowerCase() === 'true') {
+  const { app: apiApp } = require('../api/server');
+  app.use(apiApp);
+}
 
 app.use((err, _req, res, _next) => {
   console.error(err);

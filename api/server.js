@@ -102,7 +102,7 @@ app.use((err, req, res, next) => {
 });
 
 function start() {
-  app.listen(PORT, HOST, () => {
+  return app.listen(PORT, HOST, () => {
     logger.info('server', `API server listening on http://${HOST}:${PORT}`);
     logger.info('server', `Allowed origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : '(all)'}`);
     for (const module of modules) {
@@ -111,4 +111,8 @@ function start() {
   });
 }
 
-start();
+if (require.main === module) {
+  start();
+}
+
+module.exports = { app, start };
