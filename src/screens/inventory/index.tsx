@@ -3,12 +3,10 @@ import {Layout} from "@/screens/partials/layout.tsx";
 import {Tab, TabPanel} from "@/components/common/react-aria/tabs";
 import {useMemo, useState} from "react";
 import { useTranslation } from 'react-i18next';
-import ScrollContainer from "react-indiana-drag-scroll";
 import {InventoryItems} from "@/components/inventory/items/index.tsx";
 import {InventorySuppliers} from "@/components/inventory/suppliers/index.tsx";
 import {InventoryCategories} from "@/components/inventory/categories/index.tsx";
 import {InventoryLocations} from "@/components/inventory/locations/index.tsx";
-import {InventoryItemGroups} from "@/components/inventory/item_groups/index.tsx";
 import {InventoryPurchaseOrders} from "@/components/inventory/purchase_orders/index.tsx";
 import {InventoryPurchases} from "@/components/inventory/purchases/index.tsx";
 import {InventoryPurchaseReturns} from "@/components/inventory/purchase_returns/index.tsx";
@@ -80,37 +78,107 @@ export const Inventory = () => {
     'buffet-sessions': {component: <BuffetSessions/>, title: t('tabs.buffetSessions')},
   }), [t]);
 
+  const groups = useMemo(() => ([
+    {
+      id: 'overview',
+      title: t('groups.overview', {defaultValue: 'Overview'}),
+      pageKeys: ['inventory'],
+    },
+    {
+      id: 'catalog',
+      title: t('groups.catalog', {defaultValue: 'Catalog'}),
+      pageKeys: ['items', 'categories', 'locations', 'suppliers'],
+    },
+    {
+      id: 'purchasing',
+      title: t('groups.purchasing', {defaultValue: 'Purchasing'}),
+      pageKeys: ['purchase-orders', 'purchases', 'purchase-returns'],
+    },
+    {
+      id: 'stock',
+      title: t('groups.stock', {defaultValue: 'Stock'}),
+      pageKeys: ['issues', 'issue-returns', 'stock-transfers', 'adjustments', 'wastes'],
+    },
+    {
+      id: 'production',
+      title: t('groups.production', {defaultValue: 'Production'}),
+      pageKeys: ['recipes', 'production', 'production-history', 'kitchen-reconciliation', 'buffet-menus', 'buffet-sessions'],
+    },
+  ]), [t]);
+
+  const activeGroup = groups.find(group => group.pageKeys.includes(selected)) ?? groups[0];
+
+  const selectPage = (key: string) => {
+    protectAction(() => {
+      setSelected(key);
+    }, {
+      module: INVENTORY_TAB_MODULES[key],
+      description: t('security.accessTab', { module: pages[key].title })
+    });
+  };
+
   return (
     <Layout
       containerClassName=""
     >
       <DocumentTitle parts={[pages[selected]?.title, tNav('sidebar.inventory')]} />
       <div data-testid="inventory-page">
+        <section
+          className="mb-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3 shadow-sm"
+          aria-label={t('groups.label', {defaultValue: 'Inventory sections'})}
+        >
+          <div
+            className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5"
+            data-testid="inventory-groups"
+          >
+            {groups.map(group => {
+              const isActive = group.id === activeGroup.id;
+
+              return (
+                <button
+                  type="button"
+                  key={group.id}
+                  aria-pressed={isActive}
+                  data-testid={`inventory-group-${group.id}`}
+                  onClick={() => {
+                    if (!isActive) {
+                      selectPage(group.pageKeys[0]);
+                    }
+                  }}
+                  className={`min-h-[64px] touch-manipulation rounded-xl border-2 px-4 py-3 text-left text-base font-semibold outline-none transition focus-visible:ring-4 focus-visible:ring-red-200 ${
+                    isActive
+                      ? 'border-transparent bg-gradient text-white shadow-md'
+                      : 'border-neutral-200 bg-white text-neutral-900 hover:border-neutral-300 hover:bg-neutral-100 active:scale-[0.98]'
+                  }`}
+                >
+                  {group.title}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         <Tabs
           className="w-full flex flex-col rounded-xl"
           selectedKey={selected}
-          onSelectionChange={(key: string) => {
-            protectAction(() => {
-              setSelected(key);
-            }, {
-              module: INVENTORY_TAB_MODULES[key],
-              description: t('security.accessTab', { module: pages[key].title })
-            });
-          }}
+          onSelectionChange={(key) => selectPage(String(key))}
         >
-          <ScrollContainer mouseScroll hideScrollbars={false} className="flex-grow-0 flex-shrink">
+          <div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 shadow-sm">
+            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-neutral-500">
+              {activeGroup.title}
+            </div>
             <TabList
-              aria-label="Tabs"
-              className="flex flex-row gap-3 px-1 py-3 flex-nowrap"
+              aria-label={`${activeGroup.title} ${t('groups.pages', {defaultValue: 'pages'})}`}
+              className="flex flex-row flex-wrap gap-2"
               data-testid="inventory-tabs"
             >
-              {Object.keys(pages).map(key => (
+              {activeGroup.pageKeys.map(key => (
                 <Tab id={key} key={key} data-testid={`inventory-tab-${key}`}>{pages[key].title}</Tab>
               ))}
             </TabList>
-          </ScrollContainer>
-          {Object.keys(pages).map((key) => (
-            <TabPanel id={key} key={key} className="bg-white shadow flex-grow flex-shrink-0">
+          </div>
+          {activeGroup.pageKeys.map((key) => (
+            <TabPanel id={key} key={key} className="rounded-xl bg-white shadow flex-grow flex-shrink-0">
               <div data-testid={`inventory-panel-${key}`}>
                 {pages[key].component}
               </div>
