@@ -62,7 +62,12 @@ export const Inventory = () => {
       id: "history",
       title: "History",
       description: "Every stock movement",
-      component: <InventoryMovementHistory refreshKey={refreshKey}/>,
+      component: (
+        <InventoryMovementHistory
+          refreshKey={refreshKey}
+          onReset={() => setRefreshKey(current => current + 1)}
+        />
+      ),
     },
   ]), [refreshKey]);
 

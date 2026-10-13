@@ -402,15 +402,25 @@ export const StockMovementForm = ({
   );
 };
 
-export const InventoryMovementHistory = ({refreshKey}: {refreshKey: number}) => {
+export const InventoryMovementHistory = ({
+  refreshKey,
+  onReset,
+}: {
+  refreshKey: number;
+  onReset: () => void;
+}) => {
   const db = useDB();
   const dbRef = useRef(db);
   dbRef.current = db;
+  const {protectAction} = useSecurity();
+  const [appState] = useAtom(appPage);
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | Direction>("all");
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -478,14 +488,66 @@ export const InventoryMovementHistory = ({refreshKey}: {refreshKey: number}) => 
     });
   }, [filter, rows, search]);
 
+  const resetAllStock = () => {
+    protectAction(async () => {
+      try {
+        setResetting(true);
+        const balances = await fetchLedgerNetsByStore(dbRef.current);
+        const nonZeroBalances = balances.filter(balance => Math.abs(balance.net) > 0.000001);
+
+        if (nonZeroBalances.length === 0) {
+          toast.info("All stock is already zero.");
+          setConfirmingReset(false);
+          return;
+        }
+
+        const resetId = crypto.randomUUID();
+        const userId = appState?.user?.id ? recordIdToString(appState.user.id) : undefined;
+
+        await writeLedgerEntries(dbRef.current, nonZeroBalances.map((balance, index) => ({
+          created_by: userId,
+          business_date: toAppBusinessDate(),
+          inventory_item: balance.itemId,
+          inventory_location: balance.locationId,
+          quantity_change: -balance.net,
+          reference_type: "adjustment",
+          reference_id: resetId,
+          ledger_key: `adjustment:reset:${resetId}:${index}`,
+          notes: "Reset all stock to zero",
+        })));
+
+        toast.success(`Reset ${nonZeroBalances.length} stock balance${nonZeroBalances.length === 1 ? "" : "s"} to zero.`);
+        setConfirmingReset(false);
+        onReset();
+      } catch (resetError) {
+        toast.error(resetError instanceof Error ? resetError.message : "Unable to reset stock.");
+      } finally {
+        setResetting(false);
+      }
+    }, {
+      module: "inventory.adjustments.update",
+      description: "Reset all inventory stock to zero",
+    });
+  };
+
   if (loading) return <LoadingState/>;
   if (error) return <ErrorState message={error}/>;
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold text-neutral-900">Movement History</h2>
-        <p className="text-sm text-neutral-500">A simple record of everything added and removed.</p>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-900">Movement History</h2>
+          <p className="text-sm text-neutral-500">A simple record of everything added and removed.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setConfirmingReset(true)}
+          className="min-h-[50px] touch-manipulation rounded-xl border-2 border-red-600 bg-white px-5 font-bold text-red-700 transition hover:bg-red-50 active:scale-[0.98]"
+          data-testid="inventory-reset-stock"
+        >
+          Reset All Stock
+        </button>
       </div>
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -564,6 +626,43 @@ export const InventoryMovementHistory = ({refreshKey}: {refreshKey: number}) => 
           </tbody>
         </table>
       </div>
+
+      {confirmingReset && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reset-stock-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+            <h3 id="reset-stock-title" className="text-2xl font-bold text-neutral-900">
+              Reset all stock to zero?
+            </h3>
+            <p className="mt-3 text-base leading-6 text-neutral-600">
+              Every item at every location will be set to zero. Existing history will stay available, and the reset will be added to the history as a new movement.
+            </p>
+            <div className="mt-7 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={() => setConfirmingReset(false)}
+                className="min-h-[58px] touch-manipulation rounded-xl border-2 border-neutral-200 bg-white px-4 text-lg font-bold text-neutral-800 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={resetAllStock}
+                className="min-h-[58px] touch-manipulation rounded-xl bg-red-600 px-4 text-lg font-bold text-white shadow-md hover:bg-red-700 disabled:opacity-50"
+                data-testid="inventory-confirm-reset-stock"
+              >
+                {resetting ? "Resetting…" : "Yes, Reset Everything"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
