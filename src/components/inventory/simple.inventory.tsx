@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {useAtom} from "jotai";
 import {toast} from "sonner";
 import {useDB} from "@/api/db/db.ts";
@@ -88,6 +88,8 @@ const ErrorState = ({message}: {message: string}) => (
 
 export const SimpleCurrentStock = ({refreshKey}: {refreshKey: number}) => {
   const db = useDB();
+  const dbRef = useRef(db);
+  dbRef.current = db;
   const [rows, setRows] = useState<StockRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,8 +103,8 @@ export const SimpleCurrentStock = ({refreshKey}: {refreshKey: number}) => {
         setLoading(true);
         setError(null);
         const [{items, locations}, balances] = await Promise.all([
-          loadReferences(db),
-          fetchLedgerNetsByStore(db),
+          loadReferences(dbRef.current),
+          fetchLedgerNetsByStore(dbRef.current),
         ]);
 
         const itemById = new Map<string, ReferenceItem>();
@@ -139,7 +141,7 @@ export const SimpleCurrentStock = ({refreshKey}: {refreshKey: number}) => {
     return () => {
       active = false;
     };
-  }, [db, refreshKey]);
+  }, [refreshKey]);
 
   const visibleRows = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -213,6 +215,8 @@ export const StockMovementForm = ({
   onRecorded: () => void;
 }) => {
   const db = useDB();
+  const dbRef = useRef(db);
+  dbRef.current = db;
   const {protectAction} = useSecurity();
   const [appState] = useAtom(appPage);
   const [items, setItems] = useState<ReferenceItem[]>([]);
@@ -229,7 +233,7 @@ export const StockMovementForm = ({
 
   useEffect(() => {
     let active = true;
-    loadReferences(db)
+    loadReferences(dbRef.current)
       .then(({items: nextItems, locations: nextLocations}) => {
         if (!active) return;
         setItems(nextItems);
@@ -247,7 +251,7 @@ export const StockMovementForm = ({
     return () => {
       active = false;
     };
-  }, [db]);
+  }, []);
 
   const saveMovement = async () => {
     if (!itemId || !locationId || !Number.isFinite(quantity) || quantity <= 0) {
@@ -260,7 +264,7 @@ export const StockMovementForm = ({
         setSaving(true);
 
         if (!isStockIn) {
-          const available = await computeStockFromLedger(db, itemId, locationId);
+          const available = await computeStockFromLedger(dbRef.current, itemId, locationId);
           if (quantity > available) {
             toast.error(`Only ${formatNumber(available)} is available at this location.`);
             return;
@@ -271,7 +275,7 @@ export const StockMovementForm = ({
         const userId = appState?.user?.id ? recordIdToString(appState.user.id) : undefined;
         const notePrefix = isStockIn ? "Stock in" : "Stock out";
 
-        await writeLedgerEntries(db, [{
+        await writeLedgerEntries(dbRef.current, [{
           created_by: userId,
           business_date: toAppBusinessDate(),
           inventory_item: itemId,
@@ -400,6 +404,8 @@ export const StockMovementForm = ({
 
 export const InventoryMovementHistory = ({refreshKey}: {refreshKey: number}) => {
   const db = useDB();
+  const dbRef = useRef(db);
+  dbRef.current = db;
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -414,8 +420,8 @@ export const InventoryMovementHistory = ({refreshKey}: {refreshKey: number}) => 
         setLoading(true);
         setError(null);
         const [{items, locations}, movements] = await Promise.all([
-          loadReferences(db),
-          fetchLedgerMovements(db, {excludeReversals: true}),
+          loadReferences(dbRef.current),
+          fetchLedgerMovements(dbRef.current, {excludeReversals: true}),
         ]);
 
         const itemById = new Map<string, ReferenceItem>();
@@ -457,7 +463,7 @@ export const InventoryMovementHistory = ({refreshKey}: {refreshKey: number}) => 
     return () => {
       active = false;
     };
-  }, [db, refreshKey]);
+  }, [refreshKey]);
 
   const visibleRows = useMemo(() => {
     const query = search.trim().toLowerCase();
